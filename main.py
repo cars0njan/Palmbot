@@ -3,6 +3,8 @@ import os
 
 import discord
 
+import alive
+
 intents = discord.Intents.default()
 intents.message_content = True
 
@@ -24,19 +26,16 @@ async def on_message(message):
 
 
 try:
-  token = os.getenv("TOKEN") or ""
-  if token == "":
-    raise Exception("Token missing or invalid")
-  client.run(token)
+    token = os.getenv("TOKEN") or ""
+    if token == "":
+        raise Exception("Token missing")
+        alive.alive()
+        client.run(token)
+
 except discord.HTTPException as e:
     if e.status == 429:
-        print(
-            "The Discord servers denied the connection for making too many requests"
-        )
-        print(
-            "Get help from https://stackoverflow.com/questions/66724687/in-discord-py-how-to-solve-the-error-for-toomanyrequests"
-        )
+        print(e)
+        os.system("python restart.py")
+        os.system('kill 1')
     else:
         raise e
-
-#git test done
