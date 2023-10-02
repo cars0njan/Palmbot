@@ -29,8 +29,8 @@ try:
     token = os.getenv("TOKEN") or ""
     if token == "":
         raise Exception("Token missing")
-        alive.alive()
-        client.run(token)
+    alive.alive()
+    client.run(token)
 
 except discord.HTTPException as e:
     if e.status == 429:
