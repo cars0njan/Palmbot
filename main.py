@@ -32,11 +32,14 @@ async def on_message(msg):
     if msg.content.startswith('$Palmbot$'):
         await msg.channel.send('Hello!')
 
+#####
+
 @tree.command(description = "Show bot ping and check if bot is online.")
 async def ping(interaction: discord.Interaction):
     latency = round(client.latency * 1000)
     await interaction.response.send_message(f'**{latency}** ms. Bot is online.',ephemeral=True)
 
+#####
 
 @app_commands.command(description="suggest new functions or report bugs")
 @app_commands.describe(file='attach screenshots or code files. DO NOT include personal info as the log is unecrypted.')
@@ -54,7 +57,6 @@ async def feedback(
     try:
         file_path = './feedback.csv'
         i = fx.read_tail_index(file_path)
-        #print(i)
         index = int(i) + 1
 
         if len(content) > 2000:
@@ -88,9 +90,13 @@ async def feedback(
 
 tree.add_command(feedback)
 
+#####
 
+@tree.command(description = "Contact developer")
+async def contact(interaction: discord.Interaction):
+    await interaction.response.send_message(f'To contact the developer, please email `sc.carson.jan@gmail.com`\n\n*To suggest new functions or report bugs, please use the* `feedback` *command instead*',ephemeral=True)
 
-
+#####
 try:
     token = os.getenv("TOKEN") or ""
     if token == "":
