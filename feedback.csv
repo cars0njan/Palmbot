@@ -1,2 +1,7 @@
 "ID","Type","Content","File","Resolved"
 "0","Other","_INIT_","FALSE","TRUE"
+"1","Functions","softban", "FALSE","FALSE"
+"2","Functions","schedule msg", "FALSE","FALSE"
+"3","Functions","annomyous chat", "FALSE","FALSE"
+"4","Functions","del/ edit protection", "FALSE","FALSE"
+"5","Functions","invite QR", "FALSE","FALSE"

@@ -1,0 +1,14 @@
+@app_commands.command(description="schedule messages")
+async def schedule():
+
+
+tree.add_command(schedule)
+
+
+######
+
+@app_commands.command(description='toggle: recover any delection of message in current channel')
+async def del_protection(
+    interaction: discord.Interaction,
+    pin_notice: Literal['True','False']
+):

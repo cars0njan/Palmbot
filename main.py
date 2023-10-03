@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 
 import discord
 from discord import app_commands
@@ -8,8 +9,9 @@ from discord.app_commands import Choice
 import alive
 import functions as fx
 
-intents = discord.Intents.default()
-intents.message_content = True
+
+intents = discord.Intents.all()
+#intents.message_content = True
 
 #client = commands.Bot(command_prefix='=',intents=intents)
 
@@ -20,9 +22,18 @@ tree = app_commands.CommandTree(client)
 @client.event
 async def on_ready():
     print('We have logged in as {0.user}'.format(client))
-    # await client.tree.sync()
+
     await tree.sync()
+
+    stats_csv = pd.read_csv('./stats.csv')
+    stats_csv.Guilds[0] = len(client.guilds)
+
+    users = 0
+    for guild in client.guilds:
+        users = users + guild.member_count
+    stats_csv.Users[0] = users
     
+    stats_csv.to_csv("./stats.csv", index=False)
 
 @client.event
 async def on_message(msg):
@@ -38,6 +49,7 @@ async def on_message(msg):
 async def ping(interaction: discord.Interaction):
     latency = round(client.latency * 1000)
     await interaction.response.send_message(f'**{latency}** ms. Bot is online.',ephemeral=True)
+    fx.stats()
 
 #####
 
@@ -69,7 +81,7 @@ async def feedback(
                 
         d_index = f'"{index}"'
         d_type = f'"{type.value}"'
-        d_content = f'"{content}"'
+        d_content = f'"{content.replace('"',"'")}"'
         d_resolved = f'"FALSE"'
         
         if file == None:
@@ -84,6 +96,7 @@ async def feedback(
         fx.csv_append(file_path, data)
         
         await interaction.response.send_message('Your response has been sent. Thank you.', ephemeral=True)
+        fx.stats()
     except:
         await interaction.response.send_message('Unknown error in logging your response. Please try later or use `contact` function', ephemeral=True)
         raise
@@ -95,6 +108,10 @@ tree.add_command(feedback)
 @tree.command(description = "Contact developer")
 async def contact(interaction: discord.Interaction):
     await interaction.response.send_message(f'To contact the developer, please email `sc.carson.jan@gmail.com`\n\n*To suggest new functions or report bugs, please use the* `feedback` *command instead*',ephemeral=True)
+
+#####
+
+
 
 #####
 try:
