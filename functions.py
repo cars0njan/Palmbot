@@ -1,6 +1,8 @@
 import os
 import csv
 import pandas as pd
+import discord
+from discord import app_commands
 
 def read_tail_index(file_path):
     with open(file_path, 'r') as f:
@@ -19,6 +21,17 @@ def add_file(file_path, name, data):
         add_file.write(data)
 
 def stats():
-    stats_csv = pd.read_csv('./stats.csv')
+    stats_csv = pd.read_csv('./data/stats.csv')
     stats_csv.Command_runs[0] = stats_csv.Command_runs[0] + 1
-    stats_csv.to_csv("./stats.csv", index=False)
+    stats_csv.to_csv("./data/stats.csv", index=False)
+
+def is_owner():
+    def predicate(interaction: discord.Interaction):
+        id_owner = os.environ['ID-OWNER']
+        return interaction.user.id == int(id_owner)
+    return app_commands.check(predicate)
+
+# async def restart():
+#     async def restarter():
+#         os.system("python restarter.py")
+#         os.system('kill 1')

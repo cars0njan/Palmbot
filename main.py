@@ -25,7 +25,7 @@ async def on_ready():
 
     await tree.sync()
 
-    stats_csv = pd.read_csv('./stats.csv')
+    stats_csv = pd.read_csv('./data/stats.csv')
     stats_csv.Guilds[0] = len(client.guilds)
 
     users = 0
@@ -33,7 +33,7 @@ async def on_ready():
         users = users + guild.member_count
     stats_csv.Users[0] = users
     
-    stats_csv.to_csv("./stats.csv", index=False)
+    stats_csv.to_csv("./data/stats.csv", index=False)
 
 @client.event
 async def on_message(msg):
@@ -45,7 +45,7 @@ async def on_message(msg):
 
 #####
 
-@tree.command(description = "Show bot ping and check if bot is online.")
+@tree.command(description = "check if bot is online | bot latency")
 async def ping(interaction: discord.Interaction):
     latency = round(client.latency * 1000)
     await interaction.response.send_message(f'**{latency}** ms. Bot is online.',ephemeral=True)
@@ -67,21 +67,22 @@ async def feedback(
     file: discord.Attachment = None 
 ):
     try:
-        file_path = './feedback.csv'
+        file_path = './data/feedback.csv'
         i = fx.read_tail_index(file_path)
         index = int(i) + 1
 
         if len(content) > 2000:
-            await interaction.response.send_message('error: maximum 2000 characters for field "content"', ephemeral=True)
+            await interaction.response.send_message('error - long content: string input for `content` exceed 2000 characters', ephemeral=True)
             return
         if file != None:
             if file.size > 10485760:
-                await interaction.response.send_message('error: maximum file of 10MB for field "file"', ephemeral=True)
+                await interaction.response.send_message('error - file size too large: file input for `file` exceed 10MB', ephemeral=True)
                 return
                 
         d_index = f'"{index}"'
         d_type = f'"{type.value}"'
-        d_content = f'"{content.replace('"',"'")}"'
+        content = content.replace('"',"'")
+        d_content = f'"{content}"'
         d_resolved = f'"FALSE"'
         
         if file == None:
@@ -98,7 +99,7 @@ async def feedback(
         await interaction.response.send_message('Your response has been sent. Thank you.', ephemeral=True)
         fx.stats()
     except:
-        await interaction.response.send_message('Unknown error in logging your response. Please try later or use `contact` function', ephemeral=True)
+        await interaction.response.send_message('error - unknown error: cannot log your response. Please try later or use `/contact` function', ephemeral=True)
         raise
 
 tree.add_command(feedback)
@@ -111,7 +112,12 @@ async def contact(interaction: discord.Interaction):
 
 #####
 
-
+# @tree.command(description = "Owner Only: restart bot")
+# @fx.is_owner()
+# async def restart(interaction:discord.Interaction):
+#     await interaction.response.send_message('restarting bot', ephemeral=True)
+#     os.system("python restarter.py")
+#     os.system('kill 1 &')
 
 #####
 try:
@@ -124,7 +130,7 @@ try:
 except discord.HTTPException as e:
     if e.status == 429:
         print(e)
-        os.system("python restart.py")
-        os.system('kill 1')
+#        os.system("python restarter.py")
+        os.system('kill 1 &')
     else:
         raise e

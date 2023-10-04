@@ -12,3 +12,6 @@ need seach for orignal source
 
 # Citation
 > Cite libs
+
+# Tasks
+https://discordpy.readthedocs.io/en/stable/ext/tasks/index.html
