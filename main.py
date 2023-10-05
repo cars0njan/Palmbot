@@ -8,6 +8,10 @@ from discord.app_commands import Choice
 
 import alive
 import functions as fx
+import text
+
+import requests
+from bs4 import BeautifulSoup as BS
 
 
 intents = discord.Intents.all()
@@ -108,10 +112,78 @@ tree.add_command(feedback)
 
 @tree.command(description = "Contact developer")
 async def contact(interaction: discord.Interaction):
-    await interaction.response.send_message(f'To contact the developer, please email `sc.carson.jan@gmail.com`\n\n*To suggest new functions or report bugs, please use the* `feedback` *command instead*',ephemeral=True)
+    await interaction.response.send_message(text.text['contact'],ephemeral=True)
+    fx.stats()
 
 #####
 
+@tree.command(description='see documentation')
+async def docs(interaction: discord.Interaction):
+    docs_text = text.text['docs']
+    await interaction.response.send_message(
+    docs_text,
+    file = discord.File(r'./Documentation.md'),
+    ephemeral = True
+    )
+    fx.stats()
+
+#####
+@app_commands.command(description='Is AP-Calculus today/tomorrow day-1 or day-2?')
+@app_commands.describe(tmr='Check for tomorrow')
+@app_commands.choices(tmr=[
+    Choice(name='True', value=1),
+    Choice(name='False', value=0)
+],private_response=[
+    Choice(name='True', value=1),
+    Choice(name='False', value=0)
+])
+async def ap_cal(
+    interaction:discord.Interaction,
+    tmr : Choice[int] = 0,
+    private_response: Choice[int] = True
+):
+    current_month = fx.datetime_van().strftime('%b')
+    current_day = int(fx.datetime_van().strftime('%d'))
+    if tmr != 0:
+        tmr_val = tmr.value
+    else:
+        tmr_val = 0
+    if private_response != True:
+        private_response_val = bool(private_response.value)
+    else:
+        private_response_val = True
+
+    r = requests.get('https://whmkwan.wixsite.com/math/ap-calculus')
+    text = BS(r.text, features='html.parser').prettify()
+    soup = BS(text, 'html.parser')
+    
+    p_spans = soup.find_all('p')
+    h6_spans = soup.find_all('h6')
+    
+    spans = p_spans + list(set(h6_spans) - set(p_spans))
+    #print('__start__')
+    target_spans =[]
+    
+    for span in spans:
+        span_text = span.text.strip()
+        if span_text.startswith(f'{current_month}. {current_day+ tmr_val} - '):
+            target_spans.append(span_text)
+    
+    if len(target_spans) ==0:
+        await interaction.response.send_message('error - no result', ephemeral=True)
+        #print('error - no result')
+        return
+    if len(list(set(target_spans))) > 1:
+        await interaction.response.send_message('error - too many results', ephemeral=True)
+        #print('error - multiple results')
+        return
+    await interaction.response.send_message(f'AP-Calculus\n{target_spans[0]}', ephemeral=private_response_val)
+    fx.stats()
+    #print(target_spans[0])
+
+tree.add_command(ap_cal)
+
+#####
 # @tree.command(description = "Owner Only: restart bot")
 # @fx.is_owner()
 # async def restart(interaction:discord.Interaction):

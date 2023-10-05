@@ -3,6 +3,8 @@ import csv
 import pandas as pd
 import discord
 from discord import app_commands
+import datetime
+import pytz
 
 def read_tail_index(file_path):
     with open(file_path, 'r') as f:
@@ -30,6 +32,13 @@ def is_owner():
         id_owner = os.environ['ID-OWNER']
         return interaction.user.id == int(id_owner)
     return app_commands.check(predicate)
+
+def datetime_van():
+    utc_now = datetime.datetime.utcnow()
+    vancouver_timezone = pytz.timezone('America/Vancouver')
+    vancouver_time = utc_now.replace(tzinfo=pytz.utc).astimezone(vancouver_timezone)
+    return vancouver_time
+
 
 # async def restart():
 #     async def restarter():
