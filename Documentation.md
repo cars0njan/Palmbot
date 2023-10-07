@@ -75,3 +75,30 @@ NEXT {Day_text} : {month}. {date}
 errors:
 - no result : cannot find any result from the website
 
+bug:
+- search function may jam when searching (on last few days of a month & there is no class today)
+
+### /map
+`/map`
+
+> Show school map
+
+return: {map_image}
+
+## Server
+### /invite
+`/invite {lifespan:int =48}, {private:bool = True}, {temp:bool = False}`
+
+> generate an invite QR code & url
+
+params:
+- `lifespan` = Hours before the code expires. Default to be 48
+- `private` = Return private response. Default to be True
+- `temp` = Give temporary role. Default to be False
+
+Return:
+{url}
+{QR_code}
+
+errors:
+- no invite permission: caller is not permitted to create invite in this channel

@@ -13,6 +13,7 @@ import text
 
 import requests
 from bs4 import BeautifulSoup as BS
+import qrcode
 
 
 intents = discord.Intents.all()
@@ -161,6 +162,7 @@ async def ap_cal(
     if search_next == None:
         today_str = search_today(span_text) or 'no-class'
         await interaction.response.send_message(f'AP-Calculus\n\nToday: **{today_str.title()}**', ephemeral=True)
+        fx.stats()
         return
 
     month_mapping = {
@@ -176,26 +178,67 @@ async def ap_cal(
     span_text = sorted(span_text, key=sort_key)
     #print(span_text)
 
-    prefix_str = f'{current_month}. {current_day} -'.lower()
+    #prefix_str = f'{current_month}. {current_day} -'.lower()
     #print(prefix_str)
 
-    def with_prefix(list, prefix):
-        for index, i in enumerate(list):
-            if i.startswith(prefix):
-                return index + 1
+    def with_prefix(list):
+        for plus in range(0,5):
+            for index, i in enumerate(list):
+                if i.startswith(f'{current_month}. {current_day+plus} -'.lower()):
+                    return index
         return None
 
-    for i in range(with_prefix(span_text, prefix_str),len(span_text)):
+    for i in range(with_prefix(span_text),len(span_text)):
         if search_next.lower() in span_text[i]:
             today_str = search_today(span_text) or 'no-class'
             next_str = span_text[i]
             await interaction.response.send_message(f'AP-Calculus\n\nToday: **{today_str.title()}**\nNext: **{next_str.title()}**', ephemeral=True)
+            fx.stats()
             return
     await interaction.response.send_message('error - no result', ephemeral=True)
     return
 
 tree.add_command(ap_cal)
 
+#####
+@tree.command(description = 'Show school map')
+async def map(interaction:discord.Interaction):
+    file = discord.File('./data/upload/School_Map.png')
+    await interaction.response.send_message(file=file, ephemeral = True)
+    fx.stats()
+
+#####
+@app_commands.command(description='generate an invite QR code & url')
+@app_commands.describe(lifespan='Hours before the code expires. Default to be 48')
+@app_commands.describe(temp='Give temporary role')
+async def invite (
+    interaction:discord.Interaction, 
+    private:Literal['True', 'False'] = 'True',
+    lifespan:int = 48, 
+    temp: Literal['True', 'False'] = 'False'
+    ):
+    if not interaction.channel.permissions_for(interaction.user).create_instant_invite:
+        await interaction.response.send_message('error - no invite permission', ephemeral=True)
+        return
+    invite = await interaction.channel.create_invite(
+        max_age = lifespan*60*60, 
+        temporary = bool(temp), 
+        reason = f'invite command triggered by {interaction.user.name}'
+    )
+    invite_url = invite.url
+    invite_qr = qrcode.make(invite_url)
+    invite_qr.save("./data/temp/inviteqr_file.png")
+    
+    eph = bool(private)
+
+    # with open('./data/temp/inviteqr_file.png','wb') as f:
+    #     f.write(invite_qr)
+    with open('./data/temp/inviteqr_file.png','rb') as f:
+        await interaction.response.send_message(f'{invite_url}', file = discord.File(f), ephemeral = eph)
+    os.remove('./data/temp/inviteqr_file.png')
+    fx.stats()
+
+tree.add_command(invite)
 #####
 # @tree.command(description = "Owner Only: restart bot")
 # @fx.is_owner()
