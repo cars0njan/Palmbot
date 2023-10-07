@@ -12,3 +12,75 @@ async def del_protection(
     interaction: discord.Interaction,
     pin_notice: Literal['True','False']
 ):
+
+
+####
+import datetime
+import pytz
+import discord
+from discord import app_commands
+#from disord import Choice
+from typing import Literal
+import requests
+from bs4 import BeautifulSoup as BS
+import pandas as pd
+
+def datetime_van():
+    utc_now = datetime.datetime.utcnow()
+    vancouver_timezone = pytz.timezone('America/Vancouver')
+    vancouver_time = utc_now.replace(tzinfo=pytz.utc).astimezone(vancouver_timezone)
+    return vancouver_time
+
+current_month = datetime_van().strftime('%b')
+current_day = int(datetime_van().strftime('%d'))
+
+@app_commands.command(description='AP-Calculus day for today | your next AP-Cal class')
+@app_commands.describe(search_next='Which day are you in? We will show you your next class')
+
+async def ap_cal(
+    interaction:discord.Interaction,
+    search_next : Literal['Day 1', 'Day 2'] = None
+):
+
+    r = requests.get('https://whmkwan.wixsite.com/math/ap-calculus')
+    text = BS(r.text, features='html.parser').prettify()
+    soup = BS(text, 'html.parser')
+
+    p_spans = soup.find_all('p')
+    h6_spans = soup.find_all('h6')
+    spans = p_spans + list(set(h6_spans) - set(p_spans))
+
+    span_text =[]
+    for i in spans:
+        i = i.text.strip()
+        if (' - Day 1' in i) or (' - Day 2' in i):
+            span_text.append(i.lower())
+
+    month_mapping = {
+        'jan.': 1, 'feb.': 2, 'mar.': 3, 'apr.': 4, 'may': 5, 'jun.': 6,
+        'jul.': 7, 'aug.': 8, 'sept.': 9, 'oct.': 10, 'nov.': 11, 'dec.': 12
+    }
+    # if search_next == None:
+    #     await interaction.response.send_message(f'TODAY: ')
+    def sort_key(span_text):
+        month, day_description = span_text.split(' - ')
+        month, day = month.split(' ')
+        return (int(month_mapping[month]), int(day.split('.')[0]), day_description)
+
+    sorted_events = sorted(span_text, key=sort_key)
+    print(sorted_events)
+
+    prefix_str = f'{current_month}. {current_day} -'.lower()
+    print(prefix_str)
+
+    def with_prefix(list, prefix):
+        for index, i in enumerate(list):
+            if i.startswith(prefix):
+                return index
+        return None
+
+    for i in range(with_prefix(sorted_events, prefix_str),len(sorted_events)):
+        if search_next.lower() in sorted_events[i]:
+            await interaction.response.send_message()
+
+tree.add_command(ap_cal)

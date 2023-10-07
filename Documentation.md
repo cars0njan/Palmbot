@@ -15,7 +15,7 @@ errors:
 ### /feedback
 `/feedback {type:choice} {content:str} {Optional: attachment:file}`
 
-**Unecryped, do not send personal info**
+**Unecryped, do not send personal sensitive info**
 > suggest new functions | report bugs | other feedback
 
 params:
@@ -61,17 +61,17 @@ Method 2: go to palmbot.cars0njan.repl.co for a plain-text version.
 
 ## Utilities
 ### /ap_cal
-`/cal {Optional: tmr:Bool = False}`
+`/cal {Optional: search next:Choice}`
 
-> Is AP-Calculus today/tomorrow day-1 or day-2?
+> AP-Calculus day for today | your next AP-Cal class
 
 params:
-- `tmr` Check for tomorrow : Bool (default to be False)
+- `tmr` Search next : Choice{Day-1, Day-2 =, *null}
 
 return: 
-{month}. {date} - Day {day_num}
+TODAY : {Day_text}
+NEXT {Day_text} : {month}. {date}
 
 errors:
 - no result : cannot find any result from the website
-- too many results : mistakenly find more than one result from the website
 
