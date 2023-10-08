@@ -5,6 +5,7 @@ import discord
 from discord import app_commands
 from discord.app_commands import Choice
 from typing import Literal
+from discord.ext import tasks
 #from discord.ext import commands
 
 import alive
@@ -25,6 +26,16 @@ client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
 
+
+@tasks.loop(minutes=30.0)
+async def self_ping():
+    requests.head('palmbot.cars0njan.repl.co')
+    print(self_ping)
+
+@self_ping.before_loop()
+async def before_self_ping():
+    await client.wait_until_ready()
+
 @client.event
 async def on_ready():
     print('We have logged in as {0.user}'.format(client))
@@ -36,7 +47,7 @@ async def on_ready():
 
     users = 0
     for guild in client.guilds:
-        users = users + guild.member_count
+        users = users + (guild.member_count or 0)
     stats_csv.Users[0] = users
     
     stats_csv.to_csv("./data/stats.csv", index=False)
@@ -211,6 +222,7 @@ async def map(interaction:discord.Interaction):
 @app_commands.command(description='generate an invite QR code & url')
 @app_commands.describe(lifespan='Hours before the code expires. Default to be 48')
 @app_commands.describe(temp='Give temporary role')
+@app_commands.describe(private='return private response, else broadcast to channel')
 async def invite (
     interaction:discord.Interaction, 
     private:Literal['True', 'False'] = 'True',
@@ -227,7 +239,7 @@ async def invite (
     )
     invite_url = invite.url
     invite_qr = qrcode.make(invite_url)
-    invite_qr.save("./data/temp/inviteqr_file.png")
+    invite_qr.save("./data/temp/invite_qr.png")
     
     eph = bool(private)
 
@@ -239,6 +251,34 @@ async def invite (
     fx.stats()
 
 tree.add_command(invite)
+#####
+
+@app_commands.command(description='make a QR code with a url')
+@app_commands.describe(private='return private response, else broadcast to channel')
+async def to_qr(
+    interaction:discord.Interaction,
+    url:str ,
+    private:Literal['True', 'False'] = 'True'
+    ):
+    try:
+        invite_qr = qrcode.make(url)
+        invite_qr.save("./data/temp/to_qr_qr.png")
+    except:
+        await interaction.response.send_message('error - invalid url', ephemeral=True)
+        raise
+        return
+        
+    
+    eph = bool(private)
+
+    # with open('./data/temp/to_qr_qr.png','wb') as f:
+    #     f.write(invite_qr)
+    with open('./data/temp/to_qr_qr.png','rb') as f:
+        await interaction.response.send_message(f'{url}\nBy: {interaction.user.mention}',file = discord.File(f), ephemeral = eph)
+    os.remove('./data/temp/to_qr_qr.png')
+    fx.stats()
+
+tree.add_command(to_qr)
 #####
 # @tree.command(description = "Owner Only: restart bot")
 # @fx.is_owner()
