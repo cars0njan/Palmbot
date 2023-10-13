@@ -1,21 +1,22 @@
 import os
+from typing import Literal
+import asyncio
+
+
 import pandas as pd
+import qrcode
+import requests
+from bs4 import BeautifulSoup as BS
 
 import discord
 from discord import app_commands
 from discord.app_commands import Choice
-from typing import Literal
 from discord.ext import tasks
-#from discord.ext import commands
 
+#from discord.ext import commands
 import alive
 import functions as fx
 import text
-
-import requests
-from bs4 import BeautifulSoup as BS
-import qrcode
-
 
 intents = discord.Intents.all()
 #intents.message_content = True
@@ -27,19 +28,16 @@ tree = app_commands.CommandTree(client)
 
 
 
-@tasks.loop(minutes=30.0)
+@tasks.loop(minutes=10.0)
 async def self_ping():
-    requests.head('palmbot.cars0njan.repl.co')
-    print(self_ping)
-
-@self_ping.before_loop()
-async def before_self_ping():
-    await client.wait_until_ready()
+    requests.head('https://palmbot.cars0njan.repl.co')
+    print('\n\nself_ping\n\n')
 
 @client.event
 async def on_ready():
-    print('We have logged in as {0.user}'.format(client))
-
+    print('\n\nWe have logged in as {0.user}\n\n'.format(client))
+    self_ping.start()
+    
     await tree.sync()
 
     stats_csv = pd.read_csv('./data/stats.csv')
@@ -60,6 +58,13 @@ async def on_message(msg):
     if msg.content.startswith('$Palmbot$'):
         await msg.channel.send('Hello!')
 
+@client.event
+async def on_member_join(member):
+    async with member.guild.system_channel.typing():
+        await asyncio.sleep(1.5)
+    welcome = f"Hello {member.mention}!\nA warm welcome from **{member.guild.name}**.\n\nPalmbot is here to bring you handy functions for your school life. Type `/` anytime to call a command.\n*We also suggest you to join help server https://discord.gg/YHJx6dM6KH so that you can wake bot in case it is offline*\n\nEnjoy your time in this server!"
+    await member.guild.system_channel.send(welcome, delete_after=60.0)
+    fx.stats()
 #####
 
 @tree.command(description = "check if bot is online | bot latency")
@@ -196,9 +201,12 @@ async def ap_cal(
         for plus in range(0,5):
             for index, i in enumerate(list):
                 if i.startswith(f'{current_month}. {current_day+plus} -'.lower()):
-                    return index
+                    return index +1
         return None
 
+    if with_prefix(span_text) == None:
+        await interaction.response.send_message('error - no result', ephemeral=True)
+        return
     for i in range(with_prefix(span_text),len(span_text)):
         if search_next.lower() in span_text[i]:
             today_str = search_today(span_text) or 'no-class'
@@ -218,6 +226,12 @@ async def map(interaction:discord.Interaction):
     await interaction.response.send_message(file=file, ephemeral = True)
     fx.stats()
 
+#####
+@tree.command(description = 'Show school bell schedule')
+async def bell(interaction:discord.Interaction):
+    file = discord.File('./data/upload/School_Bell.png')
+    await interaction.response.send_message(file=file, ephemeral = True)
+    fx.stats()
 #####
 @app_commands.command(description='generate an invite QR code & url')
 @app_commands.describe(lifespan='Hours before the code expires. Default to be 48')
@@ -245,9 +259,9 @@ async def invite (
 
     # with open('./data/temp/inviteqr_file.png','wb') as f:
     #     f.write(invite_qr)
-    with open('./data/temp/inviteqr_file.png','rb') as f:
+    with open('./data/temp/invite_qr.png','rb') as f:
         await interaction.response.send_message(f'{invite_url}', file = discord.File(f), ephemeral = eph)
-    os.remove('./data/temp/inviteqr_file.png')
+    os.remove('./data/temp/invite_qr.png')
     fx.stats()
 
 tree.add_command(invite)
@@ -275,8 +289,8 @@ async def to_qr(
     #     f.write(invite_qr)
     with open('./data/temp/to_qr_qr.png','rb') as f:
         await interaction.response.send_message(f'{url}\nBy: {interaction.user.mention}',file = discord.File(f), ephemeral = eph)
-    os.remove('./data/temp/to_qr_qr.png')
     fx.stats()
+    os.remove('./data/temp/to_qr_qr.png')
 
 tree.add_command(to_qr)
 #####

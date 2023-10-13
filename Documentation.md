@@ -85,6 +85,28 @@ bug:
 
 return: {map_image}
 
+### /bell
+`/bell`
+
+> Show school bell schedule
+
+return: {bell_image}
+
+### /to_qr
+`/to_qr {url:str}, {private:bool = True}`
+
+> make a QR code with a url
+
+params:
+- `private` = Return private response. Default to be True
+
+Return:
+{url}
+By: {user.name}
+{QR_code}
+
+error:
+- invalid url: this str cannot be tranformed into a QR code via python lib qrcode
 ## Server
 ### /invite
 `/invite {lifespan:int =48}, {private:bool = True}, {temp:bool = False}`
@@ -103,18 +125,3 @@ Return:
 errors:
 - no invite permission: caller is not permitted to create invite in this channel
 
-### /to_qr
-`/to_qr {url:str}, {private:bool = True}`
-
-> make a QR code with a url
-
-params:
-- `private` = Return private response. Default to be True
-
-Return:
-{url}
-By: {user.name}
-{QR_code}
-
-error:
-- invalid url: this str cannot be tranformed into a QR code via python lib qrcode
