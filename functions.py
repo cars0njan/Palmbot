@@ -39,6 +39,12 @@ def datetime_van():
     vancouver_time = utc_now.replace(tzinfo=pytz.utc).astimezone(vancouver_timezone)
     return vancouver_time
 
+def has_role(member,role_name:str):
+    roles = member.roles
+    for i in roles:
+        if i.name == role_name:
+            return True
+    return False
 
 # async def restart():
 #     async def restarter():

@@ -8,6 +8,9 @@ import qrcode
 import requests
 from bs4 import BeautifulSoup as BS
 
+from cryptography.fernet import Fernet
+import hashlib
+
 import discord
 from discord import app_commands
 from discord.app_commands import Choice
@@ -294,13 +297,95 @@ async def to_qr(
 
 tree.add_command(to_qr)
 #####
-# @tree.command(description = "Owner Only: restart bot")
-# @fx.is_owner()
-# async def restart(interaction:discord.Interaction):
-#     await interaction.response.send_message('restarting bot', ephemeral=True)
-#     os.system("python restarter.py")
-#     os.system('kill 1 &')
 
+@app_commands.command(description='show a link to log volunteer hours')
+async def volunteer_hours (interaction:discord.Interaction):
+    key = os.environ['KEY']
+    fernet = Fernet(key)
+
+    hash_guild_id = hashlib.sha1(str(interaction.guild.id).encode()).hexdigest()
+    hash_guild_id = str(hash_guild_id)
+
+    df = pd.read_csv('./data/encrypted/volunteer_hours.csv',index_col='INDEX')
+    df_row = df[df['Hashed_Guild_ID'] == hash_guild_id].values.tolist()
+    print(df_row)
+
+    if len(df_row) ==0:
+        await interaction.response.send_message('error - NullValue\nThere is no link set for you server', ephemeral=True)
+        return
+    else:
+        e_link = df_row[0][2]
+        e_link = e_link[2:len(e_link)].encode()
+        link = fernet.decrypt(e_link).decode()
+
+        await interaction.response.send_message(f'Log Volunteer Hours\n{link}', ephemeral=True)
+        fx.stats()
+
+tree.add_command(volunteer_hours)
+
+#####
+
+@app_commands.command(
+    description="set a link to show by `/volunteer_hours` in this server"
+)
+@app_commands.describe(
+    url="Please make sure that your link is appropriate for your server"
+)
+async def volunteer_hours_set (interaction:discord.Interaction, url: str):
+    if interaction.user != interaction.guild.owner and not fx.has_role(interaction.user,"Admin_Palmbot"):
+        await interaction.response.send_message('error- no permission\ncommand only for server owner and users with Admin_Palmbot role')
+        return
+
+    key = os.environ['KEY']
+    fernet = Fernet(key)
+
+    hash_guild_id = hashlib.sha1(str(interaction.guild.id).encode()).hexdigest()
+    hash_guild_id = str(hash_guild_id)
+
+    df = pd.read_csv('./data/encrypted/volunteer_hours.csv',index_col='INDEX')
+    df_row = df[df['Hashed_Guild_ID'] == hash_guild_id].values.tolist()
+
+
+    e_guild_id = fernet.encrypt(str(interaction.guild.id).encode())
+    e_guild_id = str(e_guild_id)
+    e_url = fernet.encrypt(url.encode())
+    e_url = str(e_url)
+    hash_url = hashlib.sha1(url.encode()).hexdigest()
+    hash_url = str(hash_url)
+    e_set_user_id = fernet.encrypt(str(interaction.user.id).encode())
+    e_set_user_id = str(e_set_user_id)
+
+    df_a_data = {
+        "Encrypted_Guild_ID": e_guild_id,
+        "Hashed_Guild_ID": hash_guild_id,
+       "Encrypted_url": e_url, 
+        "Hashed_url": hash_url,
+        "Encrypted_set_user_id": e_set_user_id
+}
+    if len(df_row) == 0:
+        df.loc[len(df)] = df_a_data
+
+        df.to_csv(
+            "./data/encrypted/volunteer_hours.csv",
+            index_label="INDEX"
+        )
+        await interaction.response.send_message(f"successfully added", ephemeral = True)
+        return
+        fx.stats()
+    else:
+        df_row_id = df[df['Hashed_Guild_ID']== hash_guild_id].index.values[0]
+        print(df_row_id)
+        df.loc[df_row_id] = df_a_data
+
+        df.to_csv(
+            "./data/encrypted/volunteer_hours.csv",
+            index_label="INDEX"
+        )
+        await interaction.response.send_message("successfully updated", ephemeral=True)
+        return
+        fx.stats()
+
+tree.add_command(volunteer_hours_set)
 #####
 try:
     token = os.getenv("TOKEN") or ""

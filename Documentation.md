@@ -107,6 +107,7 @@ By: {user.name}
 
 error:
 - invalid url: this str cannot be tranformed into a QR code via python lib qrcode
+
 ## Server
 ### /invite
 `/invite {lifespan:int =48}, {private:bool = True}, {temp:bool = False}`
@@ -125,3 +126,29 @@ Return:
 errors:
 - no invite permission: caller is not permitted to create invite in this channel
 
+## Clubs
+### /volunteer_hours
+`/volunteer_hours`
+
+> show a link to log volunteer hours
+
+return:
+(link)
+
+error:
+`NullValue - There is no link set for you server`
+
+### /volunteer_hours_set
+`/volunteer_hours_set`
+
+Perms: `Guild_onwer` OR with role `Admin_Palmbot`
+Memory: One slot per Guild
+Security: Encrypted
+
+> set a link to show by `/volunteer_hours` in this server
+
+Params:
+`url`:str
+
+return:
+`successfully added` or `successfully updated`
