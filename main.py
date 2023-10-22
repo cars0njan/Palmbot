@@ -65,8 +65,8 @@ async def on_message(msg):
 async def on_member_join(member):
     async with member.guild.system_channel.typing():
         await asyncio.sleep(1.5)
-    welcome = f"Hello {member.mention}!\nA warm welcome from **{member.guild.name}**.\n\nPalmbot is here to bring you handy functions for your school life. Type `/` anytime to call a command.\n*We also suggest you to join help server https://discord.gg/YHJx6dM6KH so that you can wake bot in case it is offline*\n\nEnjoy your time in this server!"
-    await member.guild.system_channel.send(welcome, delete_after=60.0)
+    welcome = f"Hello {member.mention}!\nA warm welcome from **{member.guild.name}**.\n\nPalmbot is here to bring you handy functions for your school life. Type `/` anytime to call a command.*\nWe also suggest you to join help server https://discord.gg/YHJx6dM6KH so that you can wake bot in case it is offline*\n\nEnjoy your time in this server!"
+    await member.guild.system_channel.send(welcome)
     fx.stats()
 #####
 
@@ -155,13 +155,10 @@ async def help(interaction: discord.Interaction):
     await interaction.response.send_message(text, ephemeral = True)
     fx.stats()
 #####
-@app_commands.command(description='AP-Calculus day for today | your next AP-Cal class')
-@app_commands.describe(search_next='Which day are you in? We will show you your next class')
+@app_commands.command(description='AP-Calculus day for today') #| your next AP-Cal class')
+# @app_commands.describe(search_next='Which day are you in? We will show you your next class')
 
-async def ap_cal(
-    interaction:discord.Interaction,
-    search_next : Literal['Day 1', 'Day 2'] = None
-):
+async def ap_cal(interaction:discord.Interaction):
     current_month = fx.datetime_van().strftime('%b')
     current_day = int(fx.datetime_van().strftime('%d'))
 
@@ -184,46 +181,11 @@ async def ap_cal(
         for i in span_text:
             if i.startswith(current_str):
                 return i
-    if search_next == None:
-        today_str = search_today(span_text) or 'no-class'
-        await interaction.response.send_message(f'AP-Calculus\n\nToday: **{today_str.title()}**', ephemeral=True)
-        fx.stats()
-        return
+        return 'No-Class'
 
-    month_mapping = {
-        'jan.': 1, 'feb.': 2, 'mar.': 3, 'apr.': 4, 'may': 5, 'jun.': 6,
-        'jul.': 7, 'aug.': 8, 'sept.': 9, 'oct.': 10, 'nov.': 11, 'dec.': 12
-    }
-
-    def sort_key(span_text):
-        month, day_description = span_text.split(' - ')
-        month, day = month.split(' ')
-        return (int(month_mapping[month]), int(day.split('.')[0]), day_description)
-
-    span_text = sorted(span_text, key=sort_key)
-    #print(span_text)
-
-    #prefix_str = f'{current_month}. {current_day} -'.lower()
-    #print(prefix_str)
-
-    def with_prefix(list):
-        for plus in range(0,5):
-            for index, i in enumerate(list):
-                if i.startswith(f'{current_month}. {current_day+plus} -'.lower()):
-                    return index +1
-        return None
-
-    if with_prefix(span_text) == None:
-        await interaction.response.send_message('error - no result', ephemeral=True)
-        return
-    for i in range(with_prefix(span_text),len(span_text)):
-        if search_next.lower() in span_text[i]:
-            today_str = search_today(span_text) or 'no-class'
-            next_str = span_text[i]
-            await interaction.response.send_message(f'AP-Calculus\n\nToday: **{today_str.title()}**\nNext: **{next_str.title()}**', ephemeral=True)
-            fx.stats()
-            return
-    await interaction.response.send_message('error - no result', ephemeral=True)
+    today_str = search_today(span_text)
+    await interaction.response.send_message(f'AP-Calculus\nToday: **{today_str.title()}**', ephemeral=True)
+    fx.stats()
     return
 
 tree.add_command(ap_cal)
