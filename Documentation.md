@@ -152,3 +152,6 @@ Params:
 
 return:
 `successfully added` or `successfully updated`
+
+### /palmwall
+`/palmwall`

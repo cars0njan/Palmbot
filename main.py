@@ -31,15 +31,15 @@ tree = app_commands.CommandTree(client)
 
 
 
-@tasks.loop(minutes=10.0)
-async def self_ping():
-    requests.head('https://palmbot.cars0njan.repl.co')
-    print('\n\nself_ping\n\n')
+# @tasks.loop(minutes=10.0)
+# async def self_ping():
+#     requests.head('https://palmbot.cars0njan.repl.co')
+#     print('\n\nself_ping\n\n')
 
 @client.event
 async def on_ready():
     print('\n\nWe have logged in as {0.user}\n\n'.format(client))
-    self_ping.start()
+    # self_ping.start()
     
     await tree.sync()
 
@@ -147,7 +147,13 @@ async def docs(interaction: discord.Interaction):
     ephemeral = True
     )
     fx.stats()
+#####
 
+@tree.command(description='join help server')
+async def help(interaction: discord.Interaction):
+    text = text.open_id['Palmbot_join_url']
+    await interaction.response.send_message(text, ephemeral = True)
+    fx.stats()
 #####
 @app_commands.command(description='AP-Calculus day for today | your next AP-Cal class')
 @app_commands.describe(search_next='Which day are you in? We will show you your next class')
@@ -386,6 +392,120 @@ async def volunteer_hours_set (interaction:discord.Interaction, url: str):
         fx.stats()
 
 tree.add_command(volunteer_hours_set)
+#####
+
+@app_commands.command(description="Send anonymous message to the wall")
+@app_commands.describe(show_identifier="Showing identifier (#xxxx) can proof youself the same person a across messages. This also makes you trackable across messages.")
+async def palmwall(
+    interaction: discord.Interaction, 
+    message: str, 
+    show_identifier:Literal['True','False'] = '',
+    file:discord.Attachment=None
+):
+    if not file == None:
+        # file = await raw_file.to_file()
+        filetype= file.content_type.split('/')[-1]
+        await file.save(f'./data/temp/SPOILER_wall.{filetype}')
+    hide_identifier = not bool(show_identifier)
+    hash_id = hashlib.sha1(
+        str(interaction.user.id).encode()
+    ).hexdigest()
+    hash_id = str(hash_id)
+    channel = client.get_channel(int(text.open_id['PalmWall_Channel_ID']))
+
+    df = pd.read_csv(
+        "./data/encrypted/palmwall.csv",
+        index_col="User_Identifier",
+        dtype = 'str'
+    )
+
+    clones = pd.read_csv(
+        "./data/palmwall_clones.csv",
+        index_col = False,
+        dtype = 'str'
+    )
+    clones = clones['Channel_ID'].to_list()
+    
+    # print(f'\n\n{type(df)}\n\n')
+    if df[df["User_ID_Hash"] == hash_id].empty:
+        df.loc[len(df)] = {"User_ID_Hash": hash_id, 'Banned':0}
+        df.to_csv(
+            "./data/encrypted/palmwall.csv",
+            index_label="User_Identifier"
+        )
+    elif df[df["User_ID_Hash"] == hash_id]['Banned'][0]=='1':
+        await interaction.response.send_message("error - Rejected\nYou are banned from using this command due to previous abuse\n\n*(contact developer by `/contact` if you think it is a mistake)*", ephemeral=True)
+        return
+
+    if not hide_identifier:
+        identifier = df[df["User_ID_Hash"] == hash_id]
+        identifier =str(identifier.index[0])
+        message=f"*#{identifier.zfill(4)}*:\n{message}\n."
+    else:
+        key = os.environ['KEY']
+        fernet = Fernet(key)
+        e_id = fernet.encrypt(str(interaction.user.id).encode())
+        e_id = str(e_id)[2:-1]
+        message=f"`{e_id}`:\n{message}"
+    
+    channel = client.get_channel(int(text.open_id['PalmWall_Channel_ID']))
+    if not file == None:
+        #with open(f'./data/temp/SPOILER_wall.{filetype}', 'rb') as f:
+        f = discord.File(f'./data/temp/SPOILER_wall.{filetype}')
+        sent_msg = await channel.send(message, file = f)
+    else:
+        sent_msg = await channel.send(message)
+    
+    await interaction.response.send_message(f"Message sent in\n{sent_msg.jump_url}\n\n*(join by typing `/help` if you are not in the server)*", ephemeral = True)
+    fx.stats()
+
+    if not clones:
+        return
+    if not file == None:
+        # with open(f'./data/temp/SPOILER_wall.{filetype}', 'rb') as f:
+        for i in clones:
+            try:
+                channel = client.get_channel(int(i))
+                f = discord.File(f'./data/temp/SPOILER_wall.{filetype}')
+                await channel.send(message, file = f)
+            except:
+                pass
+        os.remove(f'./data/temp/SPOILER_wall.{filetype}')
+    else:
+        for i in clones:
+            try:
+                channel = client.get_channel(int(i))
+                await channel.send(message)
+            except:
+                pass
+
+tree.add_command(palmwall)
+#####
+@app_commands.command(description="Make this channel a clone of PalmWall")
+async def palmwall_clone (interaction:discord.Interaction):
+    if interaction.user != interaction.guild.owner and not fx.has_role(interaction.user,"Admin_Palmbot"):
+        await interaction.response.send_message('error- no permission\ncommand only for server owner and users with Admin_Palmbot role')
+        return
+    
+    clones = pd.read_csv(
+        "./data/palmwall_clones.csv",
+        index_col = 'INDEX',
+        dtype = 'str'
+    )
+
+    if clones[clones['Channel_ID'] == str(interaction.channel.id)].empty:
+        clones.loc[len(clones)] = {'Channel_ID':str(interaction.channel.id)}
+        clones.to_csv(
+            "./data/palmwall_clones.csv",
+            index_label = 'INDEX'
+        )
+        await interaction.response.send_message('sucessfully cloned',ephemeral=True)
+        msg = await interaction.channel.send(text.text['clone'])
+        await msg.pin()
+    else:
+        await interaction.response.send_message("error - Invalid\nChannel already cloned",ephemeral=True)
+
+tree.add_command(palmwall_clone)
 #####
 try:
     token = os.getenv("TOKEN") or ""
