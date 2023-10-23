@@ -1,7 +1,8 @@
 import os
 from typing import Literal
 import asyncio
-
+from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 
 import pandas as pd
 import qrcode
@@ -66,10 +67,14 @@ async def on_member_join(member):
     async with member.guild.system_channel.typing():
         await asyncio.sleep(1.5)
     welcome = f"Hello {member.mention}!\nA warm welcome from **{member.guild.name}**.\n\nPalmbot is here to bring you handy functions for your school life. Type `/` anytime to call a command.*\nWe also suggest you to join help server https://discord.gg/YHJx6dM6KH so that you can wake bot in case it is offline*\n\nEnjoy your time in this server!"
-    await member.guild.system_channel.send(welcome)
+    await member.guild.system_channel.send(welcome, delete_after=60.0)
     fx.stats()
 #####
+@tree.command(description='List all commands avaliable')
+async def all_commands(interaction:discord.Interaction):
+    await interaction.response.send_message(f'**Here are all Palmbot commands**\n{text.all_commands}', ephemeral=True)
 
+#####
 @tree.command(description = "check if bot is online | bot latency")
 async def ping(interaction: discord.Interaction):
     latency = round(client.latency * 1000)
@@ -155,11 +160,13 @@ async def help(interaction: discord.Interaction):
     await interaction.response.send_message(text, ephemeral = True)
     fx.stats()
 #####
-@app_commands.command(description='AP-Calculus day for today') #| your next AP-Cal class')
+@app_commands.command(description='AP-Calculus day for today & tomorrow') #| your next AP-Cal class')
 # @app_commands.describe(search_next='Which day are you in? We will show you your next class')
 
 async def ap_cal(interaction:discord.Interaction):
     current_month = fx.datetime_van().strftime('%b')
+    next_month = fx.datetime_van() + relativedelta(months=1)
+    next_month = next_month.strftime('%b')
     current_day = int(fx.datetime_van().strftime('%d'))
 
     r = requests.get('https://whmkwan.wixsite.com/math/ap-calculus')
@@ -177,14 +184,26 @@ async def ap_cal(interaction:discord.Interaction):
             span_text.append(i.lower())
 
     current_str = f'{current_month}. {current_day} -'.lower()
-    def search_today(span_text):
+    
+    if current_month in [1,3,5,7,8,10,12] and current_day ==31:
+        next_str = f'{next_month}. 1 -'.lower()
+    elif current_month in [4,6,9,11] and current_day ==30:
+        next_str = f'{next_month}. 1 -'.lower()
+    elif current_month == 2 and current_day == 28:
+        next_str = f'{next_month}. 1 -'.lower()
+    else:
+        next_str = f'{current_month}. {current_day+1} -'.lower()
+    
+    def search_span(span_text, target):
         for i in span_text:
-            if i.startswith(current_str):
+            if i.startswith(target):
                 return i
         return 'No-Class'
 
-    today_str = search_today(span_text)
-    await interaction.response.send_message(f'AP-Calculus\nToday: **{today_str.title()}**', ephemeral=True)
+    today_str = search_span(span_text, current_str)
+    tmr_str = search_span(span_text, next_str)
+    
+    await interaction.response.send_message(f'AP-Calculus\nToday: **{today_str.title()}**\nTomorrow: **{tmr_str.title()}**', ephemeral=True)
     fx.stats()
     return
 

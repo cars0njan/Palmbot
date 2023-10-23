@@ -3,7 +3,7 @@ import csv
 import pandas as pd
 import discord
 from discord import app_commands
-import datetime
+from datetime import datetime
 import pytz
 
 def read_tail_index(file_path):
@@ -34,7 +34,7 @@ def is_owner():
     return app_commands.check(predicate)
 
 def datetime_van():
-    utc_now = datetime.datetime.utcnow()
+    utc_now = datetime.utcnow()
     vancouver_timezone = pytz.timezone('America/Vancouver')
     vancouver_time = utc_now.replace(tzinfo=pytz.utc).astimezone(vancouver_timezone)
     return vancouver_time
