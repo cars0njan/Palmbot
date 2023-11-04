@@ -3,6 +3,7 @@ from typing import Literal
 import asyncio
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
+import pytz
 
 import pandas as pd
 import qrcode
@@ -66,7 +67,7 @@ async def on_message(msg):
 async def on_member_join(member):
     async with member.guild.system_channel.typing():
         await asyncio.sleep(1.5)
-    welcome = f"Hello {member.mention}!\nA warm welcome from **{member.guild.name}**.\n\nPalmbot is here to bring you handy functions for your school life. Type `/` anytime to call a command.*\nWe also suggest you to join help server https://discord.gg/YHJx6dM6KH so that you can wake bot in case it is offline*\n\nEnjoy your time in this server!"
+    welcome = f"Hello {member.mention}!\nA warm welcome from **{member.guild.name}**.\n\nPalmbot is here to bring you handy functions for your school life. Type `/` anytime to call a command.\n*We also suggest you to join help server https://discord.gg/YHJx6dM6KH so that you can wake bot in case it is offline*\n\nEnjoy your time in this server!"
     await member.guild.system_channel.send(welcome, delete_after=60.0)
     fx.stats()
 #####
@@ -84,53 +85,10 @@ async def ping(interaction: discord.Interaction):
 #####
 
 @app_commands.command(description="suggest new functions or report bugs")
-@app_commands.describe(file='attach screenshots or code files. DO NOT include personal info as the log is unecrypted.')
-@app_commands.choices(type=[
-    Choice(name='Report bug', value='Bug'),
-    Choice(name='Suggest functions', value='Functions'),
-    Choice(name='Others', value='Other'),
-])
 async def feedback(
-    interaction: discord.Interaction,
-    type: Choice[str],
-    content: str,
-    file: discord.Attachment = None 
+    interaction: discord.Interaction
 ):
-    try:
-        file_path = './data/feedback.csv'
-        i = fx.read_tail_index(file_path)
-        index = int(i) + 1
-
-        if len(content) > 2000:
-            await interaction.response.send_message('error - long content: string input for `content` exceed 2000 characters', ephemeral=True)
-            return
-        if file != None:
-            if file.size > 10485760:
-                await interaction.response.send_message('error - file size too large: file input for `file` exceed 10MB', ephemeral=True)
-                return
-                
-        d_index = f'"{index}"'
-        d_type = f'"{type.value}"'
-        content = content.replace('"',"'")
-        d_content = f'"{content}"'
-        d_resolved = f'"FALSE"'
-        
-        if file == None:
-            d_file = f'"FALSE"'
-            data = f'{d_index},{d_type},{d_content}, {d_file},{d_resolved}'
-        else:
-            d_file = f'"TRUE"'
-            data = f'{d_index},{d_type},{d_content}, {d_file},{d_resolved}'
-            filetype= file.content_type.split('/')[-1]
-            await file.save(f'./feedback_files/feedback_file_{index}.{filetype}')
-        
-        fx.csv_append(file_path, data)
-        
-        await interaction.response.send_message('Your response has been sent. Thank you.', ephemeral=True)
-        fx.stats()
-    except:
-        await interaction.response.send_message('error - unknown error: cannot log your response. Please try later or use `/contact` function', ephemeral=True)
-        raise
+    interaction.response.send_message(f'Please send the feedback via this form\nhttps://forms.gle/1LmwudJEa94TVdNC8', ephemeral=True)
 
 tree.add_command(feedback)
 
@@ -156,8 +114,8 @@ async def docs(interaction: discord.Interaction):
 
 @tree.command(description='join help server')
 async def help(interaction: discord.Interaction):
-    text = text.open_id['Palmbot_join_url']
-    await interaction.response.send_message(text, ephemeral = True)
+    txt = text.open_id['Palmbot_join_url']
+    await interaction.response.send_message(f"Help server:\n{txt}\n\nCommand list: `/all_commands`", ephemeral = True)
     fx.stats()
 #####
 @app_commands.command(description='AP-Calculus day for today & tomorrow') #| your next AP-Cal class')
@@ -487,6 +445,64 @@ async def palmwall_clone (interaction:discord.Interaction):
         await interaction.response.send_message("error - Invalid\nChannel already cloned",ephemeral=True)
 
 tree.add_command(palmwall_clone)
+#####
+
+@app_commands.command(
+    description = 'Schedule a message in this channel'
+)
+@app_commands.describe(
+    message = 'The message you want to schedule',
+    minute_mm = 'Minute. Zero-padded in 2 digits. Default to be current minute',
+    hour_hh = '24-Hour in Van-time. Zero-padded in 2 digits. Default to be current hour',
+    day_dd = 'Day. Zero-padded in 2 digits. Default to be current day',
+    month_mm = 'Month. Zero-padded in 2 digits. Default to be current month',
+    year_yyyy = 'Year. Zero-padded in 4 digits. Default to be current year',
+)
+async def schedule_message(
+    interaction:discord.Interaction,
+    message:str,
+    minute_mm: int = int(datetime.now(tz=pytz.timezone('America/Vancouver')).strftime('%M')),
+    hour_hh: int = int(datetime.now(tz=pytz.timezone('America/Vancouver')).strftime('%H')),
+    day_dd: int = int(datetime.now(tz=pytz.timezone('America/Vancouver')).strftime('%d')),
+    month_mm: int = int(datetime.now(tz=pytz.timezone('America/Vancouver')).strftime('%m')),
+    year_yyyy: int = int(datetime.now(tz=pytz.timezone('America/Vancouver')).strftime('%Y'))
+):
+    if interaction.user != interaction.guild.owner and not fx.has_role(interaction.user,"Admin_Palmbot"):
+        await interaction.response.send_message('error - no permission\ncommand only for server owner or users with `Admin_Palmbot` role', ephemeral=True)
+        return
+
+    try:
+        date  = datetime(year_yyyy, month_mm, day_dd,hour_hh, minute_mm, tzinfo= pytz.timezone('America/Vancouver'))
+        utc_date = date.astimezone(pytz.utc)
+        utc_date = utc_date.strftime('%Y-%m-%d_%H:%M')
+
+        key = os.environ['KEY']
+        fernet = Fernet(key)
+        e_message = fernet.encrypt(message.encode())
+        e_channel = fernet.encrypt(str(interaction.channel.id).encode())
+
+        df_a_data = {
+            'MESSAGE': e_message,
+            "CHANNEL": e_channel,
+            "UTC_DATETIME": utc_date,
+            "USER_ID": interaction.user.id,
+            "SENT":0
+        }
+
+        df = pd.read_csv('./data/encrypted/schedule.csv' , index_col='INDEX')
+        df.loc[len(df)] = df_a_data
+        df.to_csv('./data/encrypted/schedule.csv',index_label = 'INDEX')
+        send_date = date.strftime('%Y-%m-%d_%H:%M')
+        await interaction.response.send_message(f'Sucessfully scheduled at\n{send_date}\n{message}',ephemeral=True)
+        fx.stats()
+
+        #await interaction.response.send_message('message scheduled', ephemeral=True)
+    except:
+        await interaction.response.send_message('error - Invalid datetime', ephemeral=True)
+        raise
+        
+tree.add_command(schedule_message)
+
 #####
 try:
     token = os.getenv("TOKEN") or ""
