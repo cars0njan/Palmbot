@@ -375,7 +375,8 @@ async def palmwall(
     elif df[df["User_ID_Hash"] == hash_id]['Banned'][0]=='1':
         await interaction.response.send_message("error - Rejected\nYou are banned from using this command due to previous abuse\n\n*(contact developer by `/contact` if you think it is a mistake)*", ephemeral=True)
         return
-
+        
+    message = f"\n{message}"
     if not hide_identifier:
         identifier = df[df["User_ID_Hash"] == hash_id]
         identifier =str(identifier.index[0])
